@@ -1,0 +1,212 @@
+# vim: foldmethod=marker
+
+################################################################################
+# RESOURCES
+
+# {{{ argo
+snippet "snip_argo" "argo" b
+${0}---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ${1:`!v expand('%:p:h:t')`}
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io # provides CASCADE delete
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:OnRecruitnl/onrecruit-infra.git
+    targetRevision: master
+    path: k8s/charts/${2:`!v expand('%:p:h:t')`}
+    helm:
+      releaseName: $2
+      valueFiles:
+        - ../../clusters/onrecruit-prd/apps/$1/values.yaml
+        - ../../clusters/onrecruit-prd/apps/$1/values.appVersion.yaml
+        - ../../clusters/onrecruit-prd/apps/$1/secrets.yaml
+      version: v3
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ${3:`!v expand('%:p:h:t')`}
+  #syncPolicy: {}             # disables autosync
+  syncPolicy:
+    automated:                # triggers "sync" only if app is in green state
+      prune: true             # remove not used resources (the ones that are not templated anymore)
+      allowEmpty: false       # do not prune everything (safe check - do not prune if template is empty)
+      selfHeal: false         # do not sync if we change something manually - only trigger sync for git changes
+endsnippet
+# }}}
+
+# {{{ cronjob
+snippet "snip_cronjob" "cronjob" b
+# https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/cron-job-v1/
+${0}---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ${1:name}
+spec:
+  # CRONJOB STUFF
+  schedule: ${2:"*/5 * * * *"}
+  concurrencyPolicy: ${3:Forbid} # Allow (default), Forbid, Replace
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  # JOB TEMPLATE
+  jobTemplate:
+    spec:
+      completions: 1
+      parallelism: 1
+      backoffLimit: 2 
+      activeDeadlineSeconds: 300 # 5 mins
+      # POD TEMPLATE
+      template:
+        metadata:
+          name: $1
+        spec:
+          restartPolicy: ${4:OnFailure} # OnFailure, Never
+          enableServiceLinks: false
+          serviceAccountName: $1
+          automountServiceAccountToken: true
+          containers:
+            - name: $1
+              image: alpine:3
+              command:
+                - sleep
+                - "10"
+endsnippet
+#}}}
+
+# {{{ daemonset
+snippet "snip_daemonset" "daemonset" b
+$0---
+endsnippet
+# }}}
+
+# {{{ deployment
+snippet "snip_deployment" "deployment" b
+$0---
+endsnippet
+# }}}
+
+# {{{ job
+snippet "snip_job" "job" b
+# https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/job-v1/
+${0}---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ${1:name}
+spec:
+  completions: ${2:1}
+  parallelism: ${3:1}
+  backoffLimit: ${4:2}
+  activeDeadlineSeconds: ${5:300} # 5 mins
+  ttlSecondsAfterFinished: ${6:60} # if controller supports it
+  # POD TEMPLATE
+  template:
+    metadata:
+      name: $1
+    spec:
+      restartPolicy: ${7:OnFailure} # valid options: OnFailure, Never
+      containers:
+        - name: $1
+          image: alpine:3
+          command:
+            - sh
+            - -c
+            - 'echo OK; sleep 10; echo OK2; sleep 10; exit 1'
+endsnippet
+# }}}
+
+# {{{ pod
+# https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/
+snippet "snip_pod" "pod" b
+$0---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ${1:pod_name}
+  labels:
+    app.kubernetes.io/name: $1
+spec:
+  enableServiceLinks: false
+  serviceAccountName: $1
+  automountServiceAccountToken: true
+
+  restartPolicy: OnFailure # Always(default)/OnFailure/Never
+  imagePullSecrets:
+    - name: registry-creds
+  enableServiceLinks: false # default: ture # to disable automagic service ENV variable propagation
+  containers:
+    - name: demo
+      image: cloudnatived/demo:hello
+      imagePullPolicy: Always # Always/IfNotPresent/Never
+      ports:
+        - containerPort: 8888
+      resources:
+        requests:
+          memory: 10Mi
+          cpu: 100m
+        limits:
+          memory: 20Mi
+          cpu: 250m
+      livenessProbe:
+        httpGet:
+          path: /healthz
+          port: 8888
+        initialDelaySeconds: 3
+        periodSeconds: 3
+endsnippet
+# }}}
+
+# {{{ statefulset
+snippet "snip_statefulset" "statefulset" b
+$0---
+endsnippet
+# }}}
+
+# {{{ endpoints
+snippet "snip_endpoints" "endpoints" b
+# https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.22/#endpoints-v1-core
+$0---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: ${1:name}
+  namespace: ${2:namespace}
+  labels:
+    ${3:label_key: label_value}
+subsets:
+  - addresses:
+      - ip: ${4:ip}
+        nodeName: ${5:node_name}
+    ports:
+      - name: ${6:metrics}
+        port: ${7:12345}
+        protocol: ${8: TCP} # TCP, UDP, SCTP
+endsnippet
+# }}}
+
+################################################################################
+# SNIPS
+# {{{ env_configmap_key
+snippet "snip_env_configmap_key" "configMapKeyRef" b
+env:
+  - name: ${1:VAR_NAME}
+    valueFrom:
+      configMapKeyRef:
+        name: ${2:config_map_name}
+        key: ${3:key_in_config_map}
+        optional: ${4:true}$0
+endsnippet
+# }}}
+# {{{ env_configmap_ref
+snippet "snip_env_configmap_ref" "configMapRef" b
+envFrom:
+  - configMapRef:
+      name: ${1:config_map_name}
+      # prefix: ${2:CONFIG_} # to prefix all keys with CONFIG_
+      optional: ${3:true}$0
+endsnippet
+# }}}
