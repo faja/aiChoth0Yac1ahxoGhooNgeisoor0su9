@@ -108,7 +108,8 @@ Plug 'quangnguyen30192/cmp-nvim-ultisnips'
 Plug 'lukas-reineke/indent-blankline.nvim'
 
 " md preview
-Plug 'iamcco/markdown-preview.nvim', { 'do': 'cd app && yarn install' }
+" SLOW AS FUCK
+" Plug 'iamcco/markdown-preview.nvim', { 'do': 'cd app && yarn install' }
 
 call plug#end()
 " }}}
@@ -179,16 +180,27 @@ require('nvim-web-devicons').setup()
 EOF
 " }}}
 " {{{ nvim-tree
-let g:nvim_tree_show_icons = {
-    \ 'git': 0,
-    \ 'folders': 1,
-    \ 'files': 0,
-    \ 'folder_arrows': 1,
-    \ }
-let g:nvim_tree_git_hl = 0 
-let g:nvim_tree_highlight_opened_files = 0
+" :help nvim-tree
 lua <<EOF
 require('nvim-tree').setup {
+    git = {
+        ignore = false,
+    },
+    renderer = {
+        highlight_git = false,
+        highlight_opened_files = "none",
+        icons = {
+            show = {
+                git = true,
+                folder = true,
+                file = false,
+                folder_arrow = true,
+            },
+        },
+        indent_markers = {
+            enable = true,
+        },
+    },
     update_cwd = true,
     update_focused_file = {
         enable      = true,
@@ -200,6 +212,18 @@ EOF
 " }}}
 " {{{ lsp config
 lua <<EOF
+-- if completion does not work for some reason
+-- you have to update capabilities, eg:
+-- 
+-- local capabilities = vim.lsp.protocol.make_client_capabilities()
+-- capabilities = require('cmp_nvim_lsp').update_capabilities(capabilities)
+-- require('lspconfig').gopls.setup{
+--   capabilities = capabilities,
+-- }
+
+-- require('lspconfig').gopls.setup{
+--   capabilities = capabilities,
+-- }
 require('lspconfig').gopls.setup{}
 require'lspconfig'.solargraph.setup{}
 require'lspconfig'.pyright.setup{}
@@ -312,6 +336,7 @@ cmp.setup {
 }
 
 cmp.setup.cmdline(':', {
+    mapping = cmp.mapping.preset.cmdline(),
     sources = cmp.config.sources({
       { name = 'path' },
       { name = 'cmdline',
@@ -511,3 +536,6 @@ nnoremap <leader>Gi :lua goimports(1000)<cr>
 "     - yaml
 "     - terraform
 "
+" NEW STUFF
+" :help statusline
+" set winbar=%=%m\ %f ####### %= move text to the right, %m file modified?, %f file name
