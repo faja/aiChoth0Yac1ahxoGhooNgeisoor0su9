@@ -47,12 +47,6 @@ set nobackup
 " Prime completeopt
 " set completeopt=menuone,noinsert,noselect
 
-" plugins to check
-" - nvim-telescope
-" - nvim-treesitter
-" - lsp_signature.nvim - ale nie wiem czy konieczny
-" - undotree
-
 let mapleader = " "
 
 " source ~/.config/nvim/lua/mc.lua
@@ -93,23 +87,15 @@ Plug 'nvim-telescope/telescope-fzf-native.nvim', {'do':'make'}
 Plug 'lewis6991/gitsigns.nvim'
 Plug 'tpope/vim-fugitive'
 
-" snippet stuff
-Plug 'SirVer/ultisnips'
-
 " cmp
 Plug 'hrsh7th/nvim-cmp'
 Plug 'hrsh7th/cmp-buffer'
 Plug 'hrsh7th/cmp-path'
 Plug 'hrsh7th/cmp-cmdline'
 Plug 'hrsh7th/cmp-nvim-lsp'
-Plug 'quangnguyen30192/cmp-nvim-ultisnips'
 
 " indent
 Plug 'lukas-reineke/indent-blankline.nvim'
-
-" md preview
-" SLOW AS FUCK
-" Plug 'iamcco/markdown-preview.nvim', { 'do': 'cd app && yarn install' }
 
 call plug#end()
 " }}}
@@ -263,13 +249,6 @@ require('gitsigns').setup {
 }
 END
 " }}}
-" {{{ ultisnips
-let g:UltiSnipsEditSplit="vertical"
-let g:UltiSnipsJumpForwardTrigger="<c-j>"
-let g:UltiSnipsJumpBackwardTrigger="<c-k>"
-"let g:UltiSnipsJumpForwardTrigger="<tab>"
-"let g:UltiSnipsJumpBackwardTrigger="<s-tab>"
-" }}}
 " {{{ cmp
 set completeopt=menu,menuone,noselect
 lua << EOF
@@ -277,12 +256,6 @@ local cmp = require "cmp"
 local lspkind = require "lspkind"
 
 cmp.setup {
-    snippet = {
-        expand = function(args)
-            vim.fn["UltiSnips#Anon"](args.body)
-        end,
-    },
-
     mapping = {
         -- ["<c-e>"] = cmp.mapping.clos(), -- this is actualy the default
         ["<c-p>"] = cmp.mapping.select_prev_item(),
@@ -297,9 +270,6 @@ cmp.setup {
     -- global cmp sources
     sources = {
       { name = "nvim_lsp" },
-      { name = "ultisnips",
-        keyword_length = 3,
-      },
       { name = "path" },
       { name = "buffer",
         keyword_length = 4,
@@ -324,7 +294,6 @@ cmp.setup {
              buffer = "[buf]",
              nvim_lsp = "[LSP]",
              path = "[path]",
-             ultisnips = "[snip]",
         },
       },
     },
